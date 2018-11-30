@@ -384,7 +384,9 @@ contains
 
     associate(                                                               & 
          t_stem                 => temperature_inst%t_stem_patch                 , & ! Output: [real(r8) (:)   ]  stem temperature (Kelvin)                                       
-         hs_canopy              => energyflux_inst%hs_canopy_patch               , & ! Output: [real(r8) (:)   ]  change in heat storage of stem (W/m**2) [+ to atm]                    
+         hs_canopy              => energyflux_inst%hs_canopy_patch               , & ! Output: [real(r8) (:)   ]  change in heat storage of stem (W/m**2) [+ to atm]
+         hs_canopy_abs          => energyflux_inst%hs_canopy_abs_patch           , & ! Output: [real(r8) (:)   ]  absolute of change in heat storage of stem (W/m**2)
+                             
          soilresis            => soilstate_inst%soilresis_col              , & ! Input:  [real(r8) (:)   ]  soil evaporative resistance
          snl                  => col%snl                                   , & ! Input:  [integer  (:)   ]  number of snow layers                                                  
          dayl                 => grc%dayl                                  , & ! Input:  [real(r8) (:)   ]  daylength (s)
@@ -632,6 +634,7 @@ contains
          btran(p)  = btran0
          btran2(p)  = btran0
          hs_canopy(p) = 0._r8
+         hs_canopy_abs(p) = 0._r8
          eflx_sh_stem(p) = 0._r8
       end do
 
@@ -1356,6 +1359,8 @@ contains
          
          hs_canopy(p) = dt_stem(p)*cp_stem(p)/dtime &
               +(t_veg(p)-tlbef(p))*cp_veg(p)/dtime
+
+         hs_canopy_abs(p) = abs(hs_canopy(p))
 
 
          

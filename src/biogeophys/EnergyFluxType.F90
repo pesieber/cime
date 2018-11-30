@@ -104,6 +104,8 @@ module EnergyFluxType
 
      ! Canopy heat
      real(r8), pointer :: hs_canopy_patch         (:)   ! patch change in heat content of canopy (leaf+stem) (W/m**2) [+ to atm]
+     real(r8), pointer :: hs_canopy_abs_patch     (:)   ! absolute of change in heat storage of stem (W/m**2)
+
 
      ! Balance Checks
      real(r8), pointer :: errsoi_patch            (:)   ! soil/lake energy conservation error   (W/m**2)
@@ -252,6 +254,8 @@ contains
     allocate( this%htvp_col                (begc:endc))             ; this%htvp_col                (:)   = nan
 
     allocate( this%hs_canopy_patch         (begp:endp))             ; this%hs_canopy_patch         (:)   = nan
+    allocate( this%hs_canopy_abs_patch     (begp:endp))             ; this%hs_canopy_abs_patch     (:)   = nan
+
  
     allocate(this%rresis_patch             (begp:endp,1:nlevgrnd))  ; this%rresis_patch            (:,:) = nan
     allocate(this%btran_patch              (begp:endp))             ; this%btran_patch             (:)   = nan
@@ -450,7 +454,12 @@ contains
          avgflag='A', long_name='heat change of stem', &
          ptr_patch=this%hs_canopy_patch, set_lake=0._r8, c2l_scale_type='urbanf',default='inactive')
 
+    this%hs_canopy_abs_patch(begp:endp) = spval
+    call hist_addfld1d (fname='HS_CANOPY_ABS', units='W/m^2',  &
+         avgflag='A', long_name='absolute of heat change of stem', &
+         ptr_patch=this%hs_canopy_abs_patch, set_lake=0._r8, c2l_scale_type='urbanf',default='inactive')
     this%eflx_sh_grnd_patch(begp:endp) = spval
+
     call hist_addfld1d (fname='FSH_G', units='W/m^2',  &
          avgflag='A', long_name='sensible heat from ground', &
          ptr_patch=this%eflx_sh_grnd_patch, c2l_scale_type='urbanf')

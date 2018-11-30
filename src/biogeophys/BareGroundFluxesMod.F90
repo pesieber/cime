@@ -114,7 +114,8 @@ contains
     !------------------------------------------------------------------------------
 
     associate(                                                                       & 
-         hs_canopy              => energyflux_inst%hs_canopy_patch              , & ! Output: [real(r8) (:)   ]  change in heat storage of stem (W/m**2) [+ to atm]                    
+         hs_canopy              => energyflux_inst%hs_canopy_patch              , & ! Output: [real(r8) (:)   ]  change in heat storage of stem (W/m**2) [+ to atm]  
+         hs_canopy_abs          => energyflux_inst%hs_canopy_abs_patch          , & ! Output: [real(r8) (:)   ]  absolute of change in heat storage of stem (W/m**2)                  
          eflx_sh_stem           => energyflux_inst%eflx_sh_stem_patch           , & ! Output: [real(r8) (:)   ]  sensible heat flux from stems (W/m**2) [+ to atm]                    
          soilresis              => soilstate_inst%soilresis_col                 , & ! Input:  [real(r8) (:,:) ]  evaporative soil resistance (s/m)                                                     
          snl                    => col%snl                                      , & ! Input:  [integer  (:)   ]  number of snow layers                                                  
@@ -257,6 +258,7 @@ contains
          dlrad(p)  = 0._r8
          ulrad(p)  = 0._r8
          hs_canopy(p) = 0._r8
+         hs_canopy_abs(p) = 0._r8
          eflx_sh_stem(p) = 0._r8
 
          ur(p)    = max(1.0_r8,sqrt(forc_u(g)*forc_u(g)+forc_v(g)*forc_v(g)))
