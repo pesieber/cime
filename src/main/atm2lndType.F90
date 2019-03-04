@@ -104,6 +104,8 @@ module atm2lndType
 
      ! atm->lnd downscaled
      real(r8), pointer :: forc_t_downscaled_col         (:)   => null() ! downscaled atm temperature (Kelvin)
+     real(r8), pointer :: forc_t_13_30                  (:)   => null() ! downscaled atm temperature at 1:30 pm solar time (Kelvin)
+     real(r8), pointer :: forc_t_01_30                  (:)   => null() ! downscaled atm temperature at 1:30 am solar time (Kelvin)
      real(r8), pointer :: forc_th_downscaled_col        (:)   => null() ! downscaled atm potential temperature (Kelvin)
      real(r8), pointer :: forc_q_downscaled_col         (:)   => null() ! downscaled atm specific humidity (kg/kg)
      real(r8), pointer :: forc_pbot_downscaled_col      (:)   => null() ! downscaled atm pressure (Pa)
@@ -531,6 +533,8 @@ contains
     
     ! atm->lnd downscaled
     allocate(this%forc_t_downscaled_col         (begc:endc))        ; this%forc_t_downscaled_col         (:)   = ival
+    allocate(this%forc_t_13_30                  (begc:endc))        ; this%forc_t_13_30                  (:)   = ival
+    allocate(this%forc_t_01_30                  (begc:endc))        ; this%forc_t_01_30                  (:)   = ival
     allocate(this%forc_q_downscaled_col         (begc:endc))        ; this%forc_q_downscaled_col         (:)   = ival
     allocate(this%forc_pbot_downscaled_col      (begc:endc))        ; this%forc_pbot_downscaled_col      (:)   = ival
     allocate(this%forc_th_downscaled_col        (begc:endc))        ; this%forc_th_downscaled_col        (:)   = ival
@@ -666,6 +670,16 @@ contains
     call hist_addfld1d (fname='Tair', units='K', &
          avgflag='A', long_name='atmospheric air temperature (downscaled to columns in glacier regions)', &
          ptr_col=this%forc_t_downscaled_col, default='inactive')
+
+    this%forc_t_13_30(begc:endc) = spval
+    call hist_addfld1d (fname='TBOT_13_30', units='K',  &
+         avgflag='A', long_name='atmospheric air temperature at 1:30 pm solar time (downscaled to columns in glacier regions)', &
+         ptr_col=this%forc_t_13_30, default='inactive')
+    this%forc_t_01_30(begc:endc) = spval
+    call hist_addfld1d (fname='TBOT_01_30', units='K',  &
+         avgflag='A', long_name='atmospheric air temperature at 1:30 am solar time (downscaled to columns in glacier regions)', &
+         ptr_col=this%forc_t_01_30, default='inactive')
+
 
     this%forc_pbot_downscaled_col(begc:endc) = spval
     call hist_addfld1d (fname='PBOT', units='Pa',  &
@@ -1002,8 +1016,11 @@ contains
   subroutine UpdateAccVars (this, bounds)
     !
     ! USES
-    use clm_time_manager, only : get_nstep
+    use clm_time_manager, only : get_nstep, get_curr_date, get_step_size
     use accumulMod      , only : update_accum_field, extract_accum_field
+    use clm_varcon      , only : degpsec, isecspday
+    use GridcellType    , only : grc
+
     !
     ! !ARGUMENTS:
     class(atm2lnd_type)                 :: this
@@ -1016,6 +1033,12 @@ contains
     integer :: ier                       ! error status
     integer :: begp, endp
     integer :: begc, endc
+    integer :: year                      ! year (0, ...) for nstep
+    integer :: month                     ! month (1, ..., 12) for nstep
+    integer :: day                       ! day of month (1, ..., 31) for nstep
+    integer :: secs                      ! seconds into current date for nstep
+    integer :: local_secpl               ! seconds into current date in local time
+
     real(r8), pointer :: rbufslp(:)      ! temporary single level - patch level
     real(r8), pointer :: rbufslc(:)      ! temporary single level - column level
     !---------------------------------------------------------------------
@@ -1024,6 +1047,8 @@ contains
     begc = bounds%begc; endc = bounds%endc
 
     nstep = get_nstep()
+    dtime = get_step_size()
+    call get_curr_date (year, month, day, secs)
 
     ! Allocate needed dynamic memory for single level patch field
     allocate(rbufslp(begp:endp), stat=ier)
@@ -1158,6 +1183,33 @@ contains
        call extract_accum_field ('RH30', this%rh30_patch, nstep)
     endif
 
+
+    ! Accumulate atmospheric temperature at 01:30 and 13:30
+
+    do p = bounds%begp,bounds%endp
+
+       if (patch%active(p)) then
+
+          g = patch%gridcell(p)
+          local_secpl = secs + nint((grc%londeg(g)/degpsec)/dtime)*dtime
+          local_secpl = mod(local_secpl,isecspday)
+
+          if (local_secpl == 5400) then
+             this%forc_t_01_30(p) = this%forc_t_downscaled_col(p)
+          else 
+             this%forc_t_01_30(p) = spval
+          end if
+
+          if (local_secpl == 48600) then
+             this%forc_t_13_30(p) = this%forc_t_downscaled_col(p)
+          else
+             this%forc_t_13_30(p) = spval
+          end if
+
+       end if
+    end do
+
+
     deallocate(rbufslp)
     deallocate(rbufslc)
 
@@ -1259,6 +1311,8 @@ contains
     
     ! atm->lnd downscaled
     deallocate(this%forc_t_downscaled_col)
+    deallocate(this%forc_t_13_30)
+    deallocate(this%forc_t_01_30)
     deallocate(this%forc_q_downscaled_col)
     deallocate(this%forc_pbot_downscaled_col)
     deallocate(this%forc_th_downscaled_col)

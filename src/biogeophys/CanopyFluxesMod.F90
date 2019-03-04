@@ -694,10 +694,11 @@ contains
 ! lma_dry has units of kg dry mass /m2 here (table 2 of bonan 2017) 
 ! cdry_biomass = 1400 J/kg/K, cwater = 4188 J/kg/K
 ! boreal needleleaf lma*c2b ~ 0.25 kg dry mass/m2(leaf)
-         if(.not. use_cn) lmi(p) = 0.25_r8 * max(0.01_r8, sa_leaf(p))
+         if(.not. use_cn) lmi(p) = 0.25_r8 * max(0.01_r8, sa_leaf(p)) / (1._r8 - 0.7_r8)
                  
-         cp_veg(p)  = lmi(p) * (1400._r8 + (fbw(patch%itype(p))/(1.-fbw(patch%itype(p))))*4188._r8)
-
+! Assume fraction of leaves that is water is 0.7
+         cp_veg(p)  = lmi(p) * (1400._r8 * (1._r8 - 0.7_r8) + 0.7_r8 * 4188._r8)
+  
           
 ! use non-zero, but small, heat capacity
          if(.not. use_biomass_heat_storage) then
@@ -1045,7 +1046,7 @@ contains
             ! Moved the original subroutine in-line...
 
             wta    = 1._r8/rah(p,1)             ! air
-            wtl    = (elai(p)+esai(p))/rb(p)    ! leaf
+            wtl    = (sa_leaf(p))/rb(p)    ! leaf
             wtg(p) = 1._r8/rah(p,2)             ! ground
             !            wtstem = sa_stem(p)/rb(p)    ! stem
             ! add resistance between internal stem temperature and canopy air 
@@ -1122,7 +1123,7 @@ contains
             ! Moved the original subroutine in-line...
 
             wtaq    = frac_veg_nosno(p)/raw(p,1)                        ! air
-            wtlq    = frac_veg_nosno(p)*(elai(p)+esai(p))/rb(p) * rpp   ! leaf
+            wtlq    = frac_veg_nosno(p)*(elai(p) + esai(p))/rb(p) * rpp   ! leaf
 
             !Litter layer resistance. Added by K.Sakaguchi
             snow_depth_c = z_dl ! critical depth for 100% litter burial by snow (=litter thickness)
@@ -1201,7 +1202,7 @@ contains
             ! result in an imbalance in "hvap*qflx_evap_veg" and
             ! "efe + dc2*wtgaq*qsatdt_veg"
 
-            efpot = forc_rho(c)*(esai(p)+elai(p))/rb(p) &
+            efpot = forc_rho(c)*(elai(p) + esai(p))/rb(p) &
                  *(wtgaq*(qsatl(p)+qsatldT(p)*dt_veg(p)) &
                  -wtgq0*qg(c)-wtaq0(p)*forc_q(c))
             qflx_evap_veg(p) = rpp*efpot

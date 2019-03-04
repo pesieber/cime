@@ -1034,7 +1034,8 @@ contains
     else
        this%dbh = 0.0
        this%fbw = 0.0
-       this%nstem = 0.1
+       call ncd_io('nstem',this%nstem, 'read', ncid, readvar=readv)
+       if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
        this%rstem = 0.0
        this%wood_density = 0.0
     end if

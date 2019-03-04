@@ -149,8 +149,9 @@ contains
             tlai_old = tlai(p) ! n-1 value
             tsai_old = tsai(p) ! n-1 value
 
+            ! Assuming fraction of leaves that is water is 0.7
             if (use_biomass_heat_storage) then
-                lmi(p) = max(0.0025_r8,leafc(p) * 0.002_r8 / (1._r8 - fbw(ivt(p)))) 
+                lmi(p) = max(0.0025_r8,leafc(p) * 0.002_r8 / (1._r8 - 0.7_r8)) 
             end if
 
 
@@ -222,7 +223,11 @@ contains
 
                ! calculate vegetation physiliogical parameters used in biomass heat storage
                if (use_biomass_heat_storage) then
-                  smi(p) = 0.002_r8 * (deadstemc(p) + livestemc(p)) / (1 - fbw(ivt(p)))
+                  if (spinup_state == 2) then
+                      smi(p) = 10._r8 * 0.002_r8 * (deadstemc(p) + livestemc(p)) / (1 - fbw(ivt(p)))
+                  else
+                      smi(p) = 0.002_r8 * (deadstemc(p) + livestemc(p)) / (1 - fbw(ivt(p)))
+                  end if
                end if
 
 
