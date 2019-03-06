@@ -1046,7 +1046,7 @@ contains
             ! Moved the original subroutine in-line...
 
             wta    = 1._r8/rah(p,1)             ! air
-            wtl    = (sa_leaf(p))/rb(p)    ! leaf
+            wtl    = (elai(p) + esai(p))/rb(p)    ! leaf
             wtg(p) = 1._r8/rah(p,2)             ! ground
             !            wtstem = sa_stem(p)/rb(p)    ! stem
             ! add resistance between internal stem temperature and canopy air 
