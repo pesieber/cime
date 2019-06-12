@@ -264,7 +264,7 @@ module pftconMod
      real(r8), allocatable :: dbh           (:)   ! breast hight diameter (m)
      real(r8), allocatable :: fbw           (:)   ! fraction of fresh biomass that is water
      real(r8), allocatable :: nstem         (:)   ! tree number density (#ind/m2)
-     real(r8), allocatable :: rstem         (:)   ! stem resistance to heat transfer (s/m)
+     real(r8), allocatable :: rstem         (:)   ! stem resistance to heat transfer per stem diameter (s/m2)
      real(r8), allocatable :: wood_density  (:)   ! dry wood density (kg/m3)
 
 

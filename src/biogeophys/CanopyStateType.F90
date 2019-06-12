@@ -29,8 +29,8 @@ module CanopyStateType
      real(r8) , pointer :: tsai_patch               (:)   ! patch canopy one-sided stem area index, no burying by snow
      real(r8) , pointer :: elai_patch               (:)   ! patch canopy one-sided leaf area index with burying by snow
      real(r8) , pointer :: esai_patch               (:)   ! patch canopy one-sided stem area index with burying by snow
-     real(r8) , pointer :: smi_patch                (:)   ! stem mass index (kg/m**2)
-     real(r8) , pointer :: lmi_patch                (:)   ! leaf mass index (kg/m**2)
+     real(r8) , pointer :: smi_patch                (:)   ! Aboveground stemm biomass (kg/m**2)
+     real(r8) , pointer :: lmi_patch                (:)   ! Aboveground leaf biomass  (kg/m**2)
      real(r8) , pointer :: elai240_patch            (:)   ! patch canopy one-sided leaf area index with burying by snow average over 10days 
      real(r8) , pointer :: laisun_patch             (:)   ! patch patch sunlit projected leaf area index  
      real(r8) , pointer :: laisha_patch             (:)   ! patch patch shaded projected leaf area index  
@@ -183,13 +183,13 @@ contains
          ptr_patch=this%esai_patch)
 
     this%smi_patch(begp:endp) = spval
-    call hist_addfld1d (fname='SMI', units='kg/m^2', &
-         avgflag='A', long_name='stem mass index', &
+    call hist_addfld1d (fname='AGSB', units='kg/m^2', &
+         avgflag='A', long_name='Aboveground stem biomass', &
          ptr_patch=this%smi_patch)
 
     this%lmi_patch(begp:endp) = spval
-    call hist_addfld1d (fname='LMI', units='kg/m^2', &
-         avgflag='A', long_name='leaf mass index', &
+    call hist_addfld1d (fname='AGLB', units='kg/m^2', &
+         avgflag='A', long_name='Aboveground leaf biomass', &
          ptr_patch=this%lmi_patch)
 
 

@@ -103,7 +103,7 @@ module EnergyFluxType
      real(r8), pointer :: htvp_col                (:)   ! latent heat of vapor of water (or sublimation) [j/kg]
 
      ! Canopy heat
-     real(r8), pointer :: hs_canopy_patch         (:)   ! patch change in heat content of canopy (leaf+stem) (W/m**2) [+ to atm]
+     real(r8), pointer :: hs_canopy_patch         (:)   ! patch change in heat content of canopy (leaf+stem) (W/m**2) [- to atm]
      real(r8), pointer :: hs_canopy_abs_patch     (:)   ! absolute of change in heat storage of stem (W/m**2)
 
 

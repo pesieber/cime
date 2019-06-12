@@ -365,7 +365,7 @@ contains
     real(r8) :: cp_wood
     real(r8) :: carea_stem
     real(r8) :: rstema
-    real(r8) :: bh_d (bounds%begp:bounds%endp)     ! breast height diameter
+    real(r8) :: bh_d (bounds%begp:bounds%endp)     ! breast height diameter (m)
     ! biomass parameters
     real(r8), parameter :: c_to_b = 2.0_r8         !(g biomass /g C)
 
@@ -383,20 +383,20 @@ contains
     SHR_ASSERT_ALL((ubound(leafn_patch) == (/bounds%endp/)), errMsg(sourcefile, __LINE__))
 
     associate(                                                               & 
-         t_stem                 => temperature_inst%t_stem_patch                 , & ! Output: [real(r8) (:)   ]  stem temperature (Kelvin)                                       
-         hs_canopy              => energyflux_inst%hs_canopy_patch               , & ! Output: [real(r8) (:)   ]  change in heat storage of stem (W/m**2) [+ to atm]
-         hs_canopy_abs          => energyflux_inst%hs_canopy_abs_patch           , & ! Output: [real(r8) (:)   ]  absolute of change in heat storage of stem (W/m**2)
+         t_stem                 => temperature_inst%t_stem_patch                , & ! Output: [real(r8) (:)   ]  stem temperature (Kelvin)                                       
+         hs_canopy              => energyflux_inst%hs_canopy_patch              , & ! Output: [real(r8) (:)   ]  change in heat storage of stem (W/m**2) [- to atm]
+         hs_canopy_abs          => energyflux_inst%hs_canopy_abs_patch          , & ! Output: [real(r8) (:)   ]  absolute of change in heat storage of stem (W/m**2)
                              
-         soilresis            => soilstate_inst%soilresis_col              , & ! Input:  [real(r8) (:)   ]  soil evaporative resistance
-         snl                  => col%snl                                   , & ! Input:  [integer  (:)   ]  number of snow layers                                                  
-         dayl                 => grc%dayl                                  , & ! Input:  [real(r8) (:)   ]  daylength (s)
-         max_dayl             => grc%max_dayl                              , & ! Input:  [real(r8) (:)   ]  maximum daylength for this grid cell (s)
+         soilresis              => soilstate_inst%soilresis_col                 , & ! Input:  [real(r8) (:)   ]  soil evaporative resistance
+         snl                    => col%snl                                      , & ! Input:  [integer  (:)   ]  number of snow layers                                                  
+         dayl                   => grc%dayl                                     , & ! Input:  [real(r8) (:)   ]  daylength (s)
+         max_dayl               => grc%max_dayl                                 , & ! Input:  [real(r8) (:)   ]  maximum daylength for this grid cell (s)
 
          dleaf                  => pftcon%dleaf                                 , & ! Input:  characteristic leaf dimension (m)                                     
          dbh                    => pftcon%dbh                                   , & ! Input:  diameter at brest height (m)                                    
          fbw                    => pftcon%fbw                                   , & ! Input:  fraction of biomass that is water
          nstem                  => pftcon%nstem                                 , & ! Input:  stem number density (#ind/m2)
-         rstem                  => pftcon%rstem                                 , & ! Input:  stem restistance (s/m) 
+         rstem                  => pftcon%rstem                                 , & ! Input:  stem restistance per stem diameter (s/m**2) 
          wood_density           => pftcon%wood_density                          , & ! Input:  dry wood density (kg/m3)
 
          forc_lwrad             => atm2lnd_inst%forc_lwrad_downscaled_col       , & ! Input:  [real(r8) (:)   ]  downward infrared (longwave) radiation (W/m**2)                       
@@ -447,8 +447,8 @@ contains
          frac_veg_nosno         => canopystate_inst%frac_veg_nosno_patch        , & ! Input:  [integer  (:)   ]  fraction of vegetation not covered by snow (0 OR 1) [-]
          elai                   => canopystate_inst%elai_patch                  , & ! Input:  [real(r8) (:)   ]  one-sided leaf area index with burying by snow                        
          esai                   => canopystate_inst%esai_patch                  , & ! Input:  [real(r8) (:)   ]  one-sided stem area index with burying by snow
-         smi                    => canopystate_inst%smi_patch                   , & ! Output: [real(r8) (:)   ]  Stem mass index  (kg/m**2)
-         lmi                    => canopystate_inst%lmi_patch                   , & ! Output: [real(r8) (:)   ]  Leaf mass index (kg/m**2)                            
+         smi                    => canopystate_inst%smi_patch                   , & ! Output: [real(r8) (:)   ]  Aboveground stem mass  (kg/m**2)
+         lmi                    => canopystate_inst%lmi_patch                   , & ! Output: [real(r8) (:)   ]  Aboveground leaf mass  (kg/m**2)
                         
          laisun                 => canopystate_inst%laisun_patch                , & ! Input:  [real(r8) (:)   ]  sunlit leaf area                                                      
          laisha                 => canopystate_inst%laisha_patch                , & ! Input:  [real(r8) (:)   ]  shaded leaf area                                                      
@@ -538,7 +538,7 @@ contains
          eflx_sh_snow           => energyflux_inst%eflx_sh_snow_patch           , & ! Output: [real(r8) (:)   ]  sensible heat flux from snow (W/m**2) [+ to atm]                      
          eflx_sh_h2osfc         => energyflux_inst%eflx_sh_h2osfc_patch         , & ! Output: [real(r8) (:)   ]  sensible heat flux from soil (W/m**2) [+ to atm]                      
          eflx_sh_soil           => energyflux_inst%eflx_sh_soil_patch           , & ! Output: [real(r8) (:)   ]  sensible heat flux from soil (W/m**2) [+ to atm]                      
-         eflx_sh_stem           => energyflux_inst%eflx_sh_stem_patch           , & ! Output: [real(r8) (:)   ]  sensible heat flux from stems (W/m**2) [+ to atm]                    
+         eflx_sh_stem           => energyflux_inst%eflx_sh_stem_patch           , & ! Output: [real(r8) (:)   ]  sensible heat flux from stems (W/m**2) [+ to atm]
          eflx_sh_veg            => energyflux_inst%eflx_sh_veg_patch            , & ! Output: [real(r8) (:)   ]  sensible heat flux from leaves (W/m**2) [+ to atm]                    
          eflx_sh_grnd           => energyflux_inst%eflx_sh_grnd_patch           , & ! Output: [real(r8) (:)   ]  sensible heat flux from ground (W/m**2) [+ to atm]                    
          rah1                   => frictionvel_inst%rah1_patch                  , & ! Output: [real(r8) (:)   ]  aerodynamical  resistance [s/m]
@@ -642,6 +642,7 @@ contains
       do f = 1, fn
          p = filterp(f)
 
+         ! Calculate the stem diameter if CN-module active otherwise use parameter value
          if (use_cn .AND. use_biomass_heat_storage) then
             bh_d(p) = 2._r8 * sqrt(smi(p) * (1._r8 - fbw(patch%itype(p))) / ( shr_const_pi * htop(p) * k_cyl_vol & 
             * nstem(patch%itype(p)) *  wood_density(patch%itype(p))))
@@ -651,15 +652,15 @@ contains
 
          ! leaf and stem surface area
          sa_leaf(p) = (elai(p) + esai(p))
-! double in spirit of full surface area for sensible heat
+         ! double in spirit of full surface area for sensible heat
          sa_leaf(p) = 2.*sa_leaf(p)
 
          sa_stem(p) = nstem(patch%itype(p))*(htop(p)*shr_const_pi*bh_d(p))
          
-! adjust for departure of cylindrical stem model
+         ! adjust for departure of cylindrical stem model
          sa_stem(p) = k_cyl_area * sa_stem(p)
 
-! fraction of stem receiving incoming radiation
+         ! fraction of stem receiving incoming radiation
          if(sa_stem(p) .eq. 0._r8 .AND. sa_leaf(p) .eq. 0._r8) then
             fstem(p) = 0._r8
          elseif(sa_leaf(p) .eq. 0._r8) then
@@ -673,8 +674,6 @@ contains
             fstem(p) = 0.0
             sa_stem(p) = 0.0         
          endif
-
-
 
 
          if(.not. use_biomass_heat_storage) then
@@ -694,6 +693,7 @@ contains
 ! lma_dry has units of kg dry mass /m2 here (table 2 of bonan 2017) 
 ! cdry_biomass = 1400 J/kg/K, cwater = 4188 J/kg/K
 ! boreal needleleaf lma*c2b ~ 0.25 kg dry mass/m2(leaf)
+         ! Calculate aboveground leaf biomass if CN-module not active 
          if(.not. use_cn) lmi(p) = 0.25_r8 * max(0.01_r8, sa_leaf(p)) / (1._r8 - 0.7_r8)
                  
 ! Assume fraction of leaves that is water is 0.7
@@ -706,11 +706,12 @@ contains
          endif
 
          carea_stem   = shr_const_pi * (bh_d(p)*0.5_r8)**2._r8
+         ! Calculate aboveground stem biomass if CN-module not active 
          if(.not. use_cn) smi(p) = carea_stem * htop(p) * k_cyl_vol * nstem(patch%itype(p)) * &
             wood_density(patch%itype(p)) / (1._r8 - fbw(patch%itype(p)))
 
 
-! cp-stem will have units J/k/ground_area (here assuming 1 stem/m2)
+! cp-stem will have units J/k/ground_area
          cp_stem(p) = (1400._r8 + (fbw(patch%itype(p))/(1.-fbw(patch%itype(p))))*4188._r8)
 ! use weight of dry wood
          cp_stem(p) = nstem(patch%itype(p))* cp_stem(p) * wood_density(patch%itype(p)) * htop(p) * carea_stem
@@ -1340,6 +1341,7 @@ contains
          !  Update stem temperature; adjust outgoing longwave
          !  does not account for changes in SH or internal LW,  
          !  as that would change result for t_veg above
+         !  Make sure to not devide by zero
          if((cp_stem(p)/dtime - fstem(p)*bir(p)*4.*tsbef(p)**3) .eq. 0._r8) then
             dt_stem(p) = 0._r8
          else
@@ -1350,6 +1352,7 @@ contains
          endif 
 
         ! Put upper limit of 2K to stem temperature change per time step 
+        ! Correct with sensible heat flux from stem if dstem higher than 2K
         if(abs(dt_stem(p)) > 2._r8) then
              eflx_sh_stem(p) = eflx_sh_stem(p) + (dt_stem(p) - 2._r8 * dt_stem(p) / &
              abs(dt_stem(p))) * cp_stem(p) / dtime - (dt_stem(p) - 2._r8 * dt_stem(p) &

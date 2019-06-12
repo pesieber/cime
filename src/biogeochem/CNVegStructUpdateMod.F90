@@ -87,7 +87,7 @@ contains
     !-------------------------------------------------------------------------------
     
     associate(                                                            & 
-         ivt                =>  patch%itype                             , & ! Input:  [integer  (:) ] patch vegetation type                                
+         ivt                =>  patch%itype                             , & ! Input:  [integer  (:) ] patch vegetation type
 
          woody              =>  pftcon%woody                            , & ! Input:  binary flag for woody lifeform (1=woody, 0=not woody)
          slatop             =>  pftcon%slatop                           , & ! Input:  specific leaf area at top of canopy, projected area basis [m^2/gC]
@@ -113,7 +113,7 @@ contains
 
          leafc              =>  cnveg_carbonstate_inst%leafc_patch      , & ! Input:  [real(r8) (:) ] (gC/m2) leaf C                                    
          deadstemc          =>  cnveg_carbonstate_inst%deadstemc_patch  , & ! Input:  [real(r8) (:) ] (gC/m2) dead stem C
-         livestemc          =>  cnveg_carbonstate_inst%livestemc_patch  , & ! Input:  [real(r8) (:) ] (gC/m2) live stem C                                                              
+         livestemc          =>  cnveg_carbonstate_inst%livestemc_patch  , & ! Input:  [real(r8) (:) ] (gC/m2) live stem C
 
          farea_burned       =>  cnveg_state_inst%farea_burned_col       , & ! Input:  [real(r8) (:) ] F. Li and S. Levis                                 
          htmx               =>  cnveg_state_inst%htmx_patch             , & ! Output: [real(r8) (:) ] max hgt attained by a crop during yr (m)          
@@ -127,9 +127,9 @@ contains
          htop               =>  canopystate_inst%htop_patch             , & ! Output: [real(r8) (:) ] canopy top (m)                                     
          hbot               =>  canopystate_inst%hbot_patch             , & ! Output: [real(r8) (:) ] canopy bottom (m)                                  
          elai               =>  canopystate_inst%elai_patch             , & ! Output: [real(r8) (:) ] one-sided leaf area index with burying by snow    
-         esai               =>  canopystate_inst%esai_patch             , & ! Output: [real(r8) (:) ] one-sided stem area index with burying by snow  
-         smi                => canopystate_inst%smi_patch               , & ! Output: [real(r8) (:) ]  Stem mass index  (kg/m**2)
-         lmi                => canopystate_inst%lmi_patch               , & ! Output: [real(r8) (:) ]  Leaf mass index (kg/m**2)   
+         esai               =>  canopystate_inst%esai_patch             , & ! Output: [real(r8) (:) ] one-sided stem area index with burying by snow
+         smi                => canopystate_inst%smi_patch               , & ! Output: [real(r8) (:) ] Aboveground stem biomass  (kg/m**2)
+         lmi                => canopystate_inst%lmi_patch               , & ! Output: [real(r8) (:) ] Aboveground leave biomass (kg/m**2)   
          frac_veg_nosno_alb =>  canopystate_inst%frac_veg_nosno_alb_patch & ! Output: [integer  (:) ] frac of vegetation not covered by snow [-]         
          )
 
