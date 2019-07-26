@@ -1194,13 +1194,13 @@ contains
           local_secpl = secs + nint((grc%londeg(g)/degpsec)/dtime)*dtime
           local_secpl = mod(local_secpl,isecspday)
 
-          if (local_secpl == 5400) then
+          if (local_secpl >= 5400 - dtime/2 .and. local_secpl < 5400 + dtime/2) then
              this%forc_t_01_30(p) = this%forc_t_downscaled_col(p)
           else 
              this%forc_t_01_30(p) = spval
           end if
 
-          if (local_secpl == 48600) then
+          if (local_secpl >= 48600 - dtime/2 .and. local_secpl < 48600 + dtime/2) then
              this%forc_t_13_30(p) = this%forc_t_downscaled_col(p)
           else
              this%forc_t_13_30(p) = spval

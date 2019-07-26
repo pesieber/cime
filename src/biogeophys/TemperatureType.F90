@@ -1536,14 +1536,15 @@ contains
           g = patch%gridcell(p)
           local_secpl = secs + nint((grc%londeg(g)/degpsec)/dtime)*dtime
           local_secpl = mod(local_secpl,isecspday)
+ 
 
-          if (local_secpl == 5400) then
+          if (local_secpl >= 5400 - dtime/2 .and. local_secpl < 5400 + dtime/2) then
              this%t_skin_patch_01_30(p) = this%t_skin_patch(p)
           else 
              this%t_skin_patch_01_30(p) = spval
           end if
 
-          if (local_secpl == 48600) then
+          if (local_secpl >= 48600 - dtime/2 .and. local_secpl < 48600 + dtime/2) then
              this%t_skin_patch_13_30(p) = this%t_skin_patch(p)
           else
              this%t_skin_patch_13_30(p) = spval
