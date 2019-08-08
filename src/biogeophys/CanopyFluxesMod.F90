@@ -723,7 +723,7 @@ contains
          cp_stem(p) = k_cyl_vol * cp_stem(p)
 
          tlini(p) = t_veg(p)
-         tsbef(p) = t_bark(p)
+         tsbef(p) = t_stem(p)
 
       enddo
 
@@ -1368,7 +1368,7 @@ contains
         endif
 
          
-         hs_stem(p) = dt_core(p)*cp_stem(p)/dtime
+         hs_stem(p) = dt_stem(p)*cp_stem(p)/dtime
          hs_leaf(p) = (t_veg(p)-tlini(p))*cp_veg(p)/dtime
          hs_canopy_abs(p) = abs(hs_leaf(p) + hs_stem(p))
 
