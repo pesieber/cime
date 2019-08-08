@@ -294,7 +294,7 @@ contains
     real(r8) :: tlbef(bounds%begp:bounds%endp)       ! leaf temperature from previous iteration [K]
     real(r8) :: tsbef(bounds%begp:bounds%endp)       ! stem temperature from previous iteration [K]
     real(r8) :: ecidif                               ! excess energies [W/m2]
-    real(r8) :: err(bounds%begp:bounds%endp)         ! balance error$
+    real(r8) :: err(bounds%begp:bounds%endp)         ! balance error
     real(r8) :: err_stem(bounds%begp:bounds%endp)    ! stem energy balance error
     real(r8) :: erre                                 ! balance error
     real(r8) :: co2(bounds%begp:bounds%endp)         ! atmospheric co2 partial pressure (pa)
