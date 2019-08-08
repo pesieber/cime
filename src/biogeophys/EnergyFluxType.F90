@@ -103,7 +103,8 @@ module EnergyFluxType
      real(r8), pointer :: htvp_col                (:)   ! latent heat of vapor of water (or sublimation) [j/kg]
 
      ! Canopy heat
-     real(r8), pointer :: hs_canopy_patch         (:)   ! patch change in heat content of canopy (leaf+stem) (W/m**2) [- to atm]
+     real(r8), pointer :: hs_leaf_patch           (:)   ! patch change in heat content of leaf (W/m**2) [+ to atm]
+     real(r8), pointer :: hs_stem_patch           (:)   ! patch change in heat content of stem (W/m**2) [+ to atm]
      real(r8), pointer :: hs_canopy_abs_patch     (:)   ! absolute of change in heat storage of stem (W/m**2)
 
 
@@ -253,7 +254,8 @@ contains
 
     allocate( this%htvp_col                (begc:endc))             ; this%htvp_col                (:)   = nan
 
-    allocate( this%hs_canopy_patch         (begp:endp))             ; this%hs_canopy_patch         (:)   = nan
+    allocate( this%hs_leaf_patch           (begp:endp))             ; this%hs_leaf_patch           (:)   = nan
+    allocate( this%hs_stem_patch           (begp:endp))             ; this%hs_stem_patch           (:)   = nan
     allocate( this%hs_canopy_abs_patch     (begp:endp))             ; this%hs_canopy_abs_patch     (:)   = nan
 
  
@@ -449,10 +451,16 @@ contains
          avgflag='A', long_name='sensible heat from stem', &
          ptr_patch=this%eflx_sh_stem_patch, c2l_scale_type='urbanf',default = 'inactive')
 
-    this%hs_canopy_patch(begp:endp) = spval
-    call hist_addfld1d (fname='HS_CANOPY', units='W/m^2',  &
-         avgflag='A', long_name='heat change of stem', &
-         ptr_patch=this%hs_canopy_patch, set_lake=0._r8, c2l_scale_type='urbanf',default='inactive')
+    this%hs_leaf_patch(begp:endp) = spval
+    call hist_addfld1d (fname='HS_LEAF', units='W/m^2',  &
+         avgflag='A', long_name='heat change of leaf', &
+         ptr_patch=this%hs_leaf_patch, set_lake=0._r8, c2l_scale_type='urbanf',default='inactive')
+
+    this%hs_stem_patch(begp:endp) = spval
+    call hist_addfld1d (fname='HS_STEM', units='W/m^2',  &
+          avgflag='A', long_name='heat change of stem', &
+         ptr_patch=this%hs_stem_patch, set_lake=0._r8, c2l_scale_type='urbanf',default='inactive')
+
 
     this%hs_canopy_abs_patch(begp:endp) = spval
     call hist_addfld1d (fname='HS_CANOPY_ABS', units='W/m^2',  &

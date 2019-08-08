@@ -290,10 +290,12 @@ contains
     real(r8) :: efe(bounds%begp:bounds%endp)         ! water flux from leaf [mm/s]
     real(r8) :: efsh                                 ! sensible heat from leaf [mm/s]
     real(r8) :: obuold(bounds%begp:bounds%endp)      ! monin-obukhov length from previous iteration
+    real(r8) :: tlini(bounds%begp:bounds%endp)       ! leaf temperature before iteration [K]
     real(r8) :: tlbef(bounds%begp:bounds%endp)       ! leaf temperature from previous iteration [K]
     real(r8) :: tsbef(bounds%begp:bounds%endp)       ! stem temperature from previous iteration [K]
     real(r8) :: ecidif                               ! excess energies [W/m2]
-    real(r8) :: err(bounds%begp:bounds%endp)         ! balance error
+    real(r8) :: err(bounds%begp:bounds%endp)         ! balance error$
+    real(r8) :: err_stem(bounds%begp:bounds%endp)    ! stem energy balance error
     real(r8) :: erre                                 ! balance error
     real(r8) :: co2(bounds%begp:bounds%endp)         ! atmospheric co2 partial pressure (pa)
     real(r8) :: c13o2(bounds%begp:bounds%endp)       ! atmospheric c13o2 partial pressure (pa)
@@ -384,7 +386,8 @@ contains
 
     associate(                                                               & 
          t_stem                 => temperature_inst%t_stem_patch                , & ! Output: [real(r8) (:)   ]  stem temperature (Kelvin)                                       
-         hs_canopy              => energyflux_inst%hs_canopy_patch              , & ! Output: [real(r8) (:)   ]  change in heat storage of stem (W/m**2) [- to atm]
+         hs_leaf                => energyflux_inst%hs_leaf_patch                , & ! Output: [real(r8) (:)   ]  patch change in heat content of leaf (W/m**2) [+ to atm]
+         hs_stem                => energyflux_inst%hs_stem_patch                , & ! Output: [real(r8) (:)   ]  patch change in heat content of stem (W/m**2) [+ to atm]
          hs_canopy_abs          => energyflux_inst%hs_canopy_abs_patch          , & ! Output: [real(r8) (:)   ]  absolute of change in heat storage of stem (W/m**2)
                              
          soilresis              => soilstate_inst%soilresis_col                 , & ! Input:  [real(r8) (:)   ]  soil evaporative resistance
@@ -633,7 +636,8 @@ contains
          obuold(p) = 0._r8
          btran(p)  = btran0
          btran2(p)  = btran0
-         hs_canopy(p) = 0._r8
+         hs_leaf(p)= 0._r8
+         hs_stem(p)= 0._r8
          hs_canopy_abs(p) = 0._r8
          eflx_sh_stem(p) = 0._r8
       end do
@@ -717,6 +721,10 @@ contains
          cp_stem(p) = nstem(patch%itype(p))* cp_stem(p) * wood_density(patch%itype(p)) * htop(p) * carea_stem
 ! adjust for departure from cylindrical stem model
          cp_stem(p) = k_cyl_vol * cp_stem(p)
+
+         tlini(p) = t_veg(p)
+         tsbef(p) = t_bark(p)
+
       enddo
 
       ! calculate daylength control for Vcmax
@@ -907,7 +915,6 @@ contains
             g = patch%gridcell(p)
 
             tlbef(p) = t_veg(p)
-            tsbef(p) = t_stem(p)
             del2(p) = del(p)
 
             ! Determine aerodynamic resistances
@@ -1176,7 +1183,7 @@ contains
             dt_veg(p) = ((1.-fstem(p))*(sabv(p) + air(p) &
                  + bir(p)*t_veg(p)**4 + cir(p)*lw_grnd) &
                  - efsh - efe(p) - lw_leaf(p) + lw_stem(p) &
-                 - (cp_veg(p)/dtime)*(t_veg(p) - tlbef(p))) &
+                 - (cp_veg(p)/dtime)*(t_veg(p) - tlini(p))) &
                  / ((1.-fstem(p))*(- 4._r8*bir(p)*t_veg(p)**3) &
                  + 4._r8*sa_internal(p)*emv(p)*sb*t_veg(p)**3 &
                  +dc1*wtga(p) +dc2*wtgaq*qsatldT(p) + cp_veg(p)/dtime)
@@ -1195,7 +1202,7 @@ contains
                     + lw_stem(p) &
                     - (efsh + dc1*wtga(p)*dt_veg(p)) - (efe(p) + &
                     dc2*wtgaq*qsatldT(p)*dt_veg(p)) &
-                    - (cp_veg(p)/dtime)*(t_veg(p) - tlbef(p))
+                    - (cp_veg(p)/dtime)*(t_veg(p) - tlini(p))
             end if
 
             ! Fluxes from leaves to canopy space
@@ -1336,7 +1343,7 @@ contains
          err(p) = (1.-fstem(p))*(sabv(p) + air(p) + bir(p)*tlbef(p)**3 &
               *(tlbef(p) + 4._r8*dt_veg(p)) + cir(p)*lw_grnd) &
               - lw_leaf(p) + lw_stem(p) - eflx_sh_veg(p) - hvap*qflx_evap_veg(p) &
-              - ((t_veg(p)-tlbef(p))*cp_veg(p)/dtime)
+              - ((t_veg(p)-tlini(p))*cp_veg(p)/dtime)
 
          !  Update stem temperature; adjust outgoing longwave
          !  does not account for changes in SH or internal LW,  
@@ -1361,11 +1368,9 @@ contains
         endif
 
          
-         hs_canopy(p) = dt_stem(p)*cp_stem(p)/dtime &
-              +(t_veg(p)-tlbef(p))*cp_veg(p)/dtime
-
-         hs_canopy_abs(p) = abs(hs_canopy(p))
-
+         hs_stem(p) = dt_core(p)*cp_stem(p)/dtime
+         hs_leaf(p) = (t_veg(p)-tlini(p))*cp_veg(p)/dtime
+         hs_canopy_abs(p) = abs(hs_leaf(p) + hs_stem(p))
 
          
          t_stem(p) =  t_stem(p) + dt_stem(p)
