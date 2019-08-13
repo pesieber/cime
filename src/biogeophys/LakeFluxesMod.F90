@@ -158,7 +158,8 @@ contains
          snl              =>    col%snl                                , & ! Input:  [integer  (:)   ]  number of snow layers                              
          dz               =>    col%dz                                 , & ! Input:  [real(r8) (:,:) ]  layer thickness for soil or snow (m)            
          dz_lake          =>    col%dz_lake                            , & ! Input:  [real(r8) (:,:) ]  layer thickness for lake (m)                    
-         lakedepth        =>    col%lakedepth                          , & ! Input:  [real(r8) (:)   ]  variable lake depth (m)                           
+         lakedepth        =>    col%lakedepth                          , & ! Input:  [real(r8) (:)   ]  variable lake depth (m)   
+                        
          
          forc_t           =>    atm2lnd_inst%forc_t_downscaled_col     , & ! Input:  [real(r8) (:)   ]  atmospheric temperature (Kelvin)                  
          forc_pbot        =>    atm2lnd_inst%forc_pbot_downscaled_col  , & ! Input:  [real(r8) (:)   ]  atmospheric pressure (Pa)                         
@@ -219,6 +220,9 @@ contains
          qflx_evap_soi    =>    waterfluxbulk_inst%qflx_evap_soi_patch     , & ! Output: [real(r8) (:)   ]  soil evaporation (mm H2O/s) (+ = to atm)          
          qflx_evap_tot    =>    waterfluxbulk_inst%qflx_evap_tot_patch     , & ! Output: [real(r8) (:)   ]  qflx_evap_soi + qflx_evap_can + qflx_tran_veg     
          qflx_prec_grnd   =>    waterfluxbulk_inst%qflx_prec_grnd_patch    , & ! Output: [real(r8) (:)   ]  water onto ground including canopy runoff [kg/(m2 s)]
+         hs_leaf          =>    energyflux_inst%hs_leaf_patch              , & ! Output: [real(r8) (:)   ]  patch change in heat content of leaf (W/m**2) [+ to atm]
+         hs_stem          =>    energyflux_inst%hs_stem_patch              , & ! Output: [real(r8) (:)   ]  patch change in heat content of stem (W/m**2) [+ to atm]
+
 
          t_veg            =>    temperature_inst%t_veg_patch           , & ! Output: [real(r8) (:)   ]  vegetation temperature (Kelvin)                   
          t_ref2m          =>    temperature_inst%t_ref2m_patch         , & ! Output: [real(r8) (:)   ]  2 m height surface air temperature (Kelvin)       
@@ -344,6 +348,8 @@ contains
          nmozsgn(p) = 0
          obuold(p) = 0._r8
          displa(p) = 0._r8
+         hs_stem(p) = 0._r8
+         hs_leaf(p) = 0._r8
 
          ! Latent heat
 

@@ -292,7 +292,7 @@ contains
     real(r8) :: obuold(bounds%begp:bounds%endp)      ! monin-obukhov length from previous iteration
     real(r8) :: tlini(bounds%begp:bounds%endp)       ! leaf temperature before iteration [K]
     real(r8) :: tlbef(bounds%begp:bounds%endp)       ! leaf temperature from previous iteration [K]
-    real(r8) :: tsbef(bounds%begp:bounds%endp)       ! stem temperature from previous iteration [K]
+    real(r8) :: tsini(bounds%begp:bounds%endp)       ! stem temperature from previous iteration [K]
     real(r8) :: ecidif                               ! excess energies [W/m2]
     real(r8) :: err(bounds%begp:bounds%endp)         ! balance error
     real(r8) :: err_stem(bounds%begp:bounds%endp)    ! stem energy balance error
@@ -388,7 +388,8 @@ contains
          t_stem                 => temperature_inst%t_stem_patch                , & ! Output: [real(r8) (:)   ]  stem temperature (Kelvin)                                       
          hs_leaf                => energyflux_inst%hs_leaf_patch                , & ! Output: [real(r8) (:)   ]  patch change in heat content of leaf (W/m**2) [+ to atm]
          hs_stem                => energyflux_inst%hs_stem_patch                , & ! Output: [real(r8) (:)   ]  patch change in heat content of stem (W/m**2) [+ to atm]
-         hs_canopy_abs          => energyflux_inst%hs_canopy_abs_patch          , & ! Output: [real(r8) (:)   ]  absolute of change in heat storage of stem (W/m**2)
+         hs_canopy              => energyflux_inst%hs_canopy_patch              , & ! Output: [real(r8) (:)   ]  patch change in heat content of stem + leaf (W/m**2) [+ to atm]
+         hs_canopy_abs          => energyflux_inst%hs_canopy_abs_patch          , & ! Output: [real(r8) (:)   ]  absolute patch change in heat content of stem + leaf (W/m**2)
                              
          soilresis              => soilstate_inst%soilresis_col                 , & ! Input:  [real(r8) (:)   ]  soil evaporative resistance
          snl                    => col%snl                                      , & ! Input:  [integer  (:)   ]  number of snow layers                                                  
@@ -674,7 +675,7 @@ contains
          endif
 
          ! do not calculate separate leaf/stem heat capacity for grasses and too thin trees/shrubs
-         if(patch%itype(p) > 11 .OR. bh_d(p) < 0.01) then
+         if(patch%itype(p) > 11 .OR. bh_d(p) < 0.01 .OR. patch%itype(p) .eq. 0) then
             fstem(p) = 0.0
             sa_stem(p) = 0.0         
          endif
@@ -723,7 +724,7 @@ contains
          cp_stem(p) = k_cyl_vol * cp_stem(p)
 
          tlini(p) = t_veg(p)
-         tsbef(p) = t_stem(p)
+         tsini(p) = t_stem(p)
 
       enddo
 
@@ -1349,13 +1350,13 @@ contains
          !  does not account for changes in SH or internal LW,  
          !  as that would change result for t_veg above
          !  Make sure to not devide by zero
-         if((cp_stem(p)/dtime - fstem(p)*bir(p)*4.*tsbef(p)**3) .eq. 0._r8) then
+         if((cp_stem(p)/dtime - fstem(p)*bir(p)*4.*tsini(p)**3) .eq. 0._r8) then
             dt_stem(p) = 0._r8
          else
-            dt_stem(p) = (fstem(p)*(sabv(p) + air(p) + bir(p)*tsbef(p)**4 &
+            dt_stem(p) = (fstem(p)*(sabv(p) + air(p) + bir(p)*tsini(p)**4 &
             + cir(p)*lw_grnd) - eflx_sh_stem(p) &
             + lw_leaf(p)- lw_stem(p))/(cp_stem(p)/dtime &
-            - fstem(p)*bir(p)*4.*tsbef(p)**3)
+            - fstem(p)*bir(p)*4.*tsini(p)**3)
          endif 
 
         ! Put upper limit of 2K to stem temperature change per time step 
@@ -1363,16 +1364,16 @@ contains
         if(abs(dt_stem(p)) > 2._r8) then
              eflx_sh_stem(p) = eflx_sh_stem(p) + (dt_stem(p) - 2._r8 * dt_stem(p) / &
              abs(dt_stem(p))) * cp_stem(p) / dtime - (dt_stem(p) - 2._r8 * dt_stem(p) &
-             / abs(dt_stem(p))) * fstem(p) * bir(p)*tsbef(p)**3 * 4._r8
+             / abs(dt_stem(p))) * fstem(p) * bir(p)*tsini(p)**3 * 4._r8
              dt_stem(p) = 2._r8 * dt_stem(p) / abs(dt_stem(p))
         endif
 
          
          hs_stem(p) = dt_stem(p)*cp_stem(p)/dtime
          hs_leaf(p) = (t_veg(p)-tlini(p))*cp_veg(p)/dtime
+         hs_canopy(p) = hs_leaf(p) + hs_stem(p)
          hs_canopy_abs(p) = abs(hs_leaf(p) + hs_stem(p))
-
-         
+       
          t_stem(p) =  t_stem(p) + dt_stem(p)
  
 
@@ -1455,12 +1456,12 @@ contains
          ! Downward longwave radiation below the canopy
 
          dlrad(p) = (1._r8-emv(p))*emg(c)*forc_lwrad(c) + &
-              emv(p)*emg(c)*sb*(tlbef(p)**3*(tlbef(p) + 4._r8*dt_veg(p))*(1.-fstem(p))+tsbef(p)**3*(tsbef(p) + 4._r8*dt_stem(p))*fstem(p))
+              emv(p)*emg(c)*sb*(tlbef(p)**3*(tlbef(p) + 4._r8*dt_veg(p))*(1.-fstem(p))+tsini(p)**3*(tsini(p) + 4._r8*dt_stem(p))*fstem(p))
 
          ! Upward longwave radiation above the canopy
 
          ulrad(p) = ((1._r8-emg(c))*(1._r8-emv(p))*(1._r8-emv(p))*forc_lwrad(c) &
-              + emv(p)*(1._r8+(1._r8-emg(c))*(1._r8-emv(p)))*sb*((1.-fstem(p))*tlbef(p)**3*(tlbef(p) + 4._r8*dt_veg(p))+fstem(p)*tsbef(p)**3*(tsbef(p) + 4._r8*dt_stem(p))) + emg(c)*(1._r8-emv(p))*sb*lw_grnd)
+              + emv(p)*(1._r8+(1._r8-emg(c))*(1._r8-emv(p)))*sb*((1.-fstem(p))*tlbef(p)**3*(tlbef(p) + 4._r8*dt_veg(p))+fstem(p)*tsini(p)**3*(tsini(p) + 4._r8*dt_stem(p))) + emg(c)*(1._r8-emv(p))*sb*lw_grnd)
 
 
          ! Calculate the skin temperature as a weighted sum of all the ground and vegetated fraction
