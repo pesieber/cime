@@ -54,6 +54,12 @@
   </compset>
 
   <compset>
+    <alias>I2000Clm50SpCru_v4</alias>
+    <lname>2000_DATM%CRU_CLM50%SP_SICE_SOCN_MOSART_SGLC_SWAV</lname>
+  </compset>
+
+
+  <compset>
     <alias>I2000Clm50BgcCru</alias>
     <lname>2000_DATM%CRUv7_CLM50%BGC_SICE_SOCN_MOSART_CISM2%NOEVOLVE_SWAV</lname>
   </compset>
