@@ -233,6 +233,7 @@ attributes from the config_cache.xml file (with keys converted to upper-case).
 <use_undercanopy_stability phys="clm4_5">.true.</use_undercanopy_stability>
 <use_biomass_heat_storage>.false.</use_biomass_heat_storage>
 
+
 <!-- Individual pft soil columns -->
 
 <!-- Canopy hydrology namelist defaults -->
@@ -1006,6 +1007,8 @@ lnd/clm2/surfdata_map/surfdata_ne120np4_78pfts_CMIP6_simyr1850_c170824.nc</fsurd
 
 <!-- LAI streams namelist defaults -->
 <use_lai_streams        >.false.</use_lai_streams>
+<prescribe_z0           >.false.</prescribe_z0>
+<f_prescribe_z0           ></f_prescribe_z0>
 <stream_year_first_lai  >2001</stream_year_first_lai>
 <stream_year_last_lai   >2013</stream_year_last_lai>
 <model_year_align_lai   >2001</model_year_align_lai>

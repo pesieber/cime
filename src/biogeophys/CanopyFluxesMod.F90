@@ -14,7 +14,7 @@ module CanopyFluxesMod
   use shr_log_mod           , only : errMsg => shr_log_errMsg
   use abortutils            , only : endrun
   use clm_varctl            , only : iulog, use_cn, use_lch4, use_c13, use_c14, use_cndv, use_fates, &
-                                     use_luna, use_hydrstress, use_biomass_heat_storage
+                                     use_luna, use_hydrstress, use_biomass_heat_storage, fsurdat, prescribe_z0
   use clm_varpar            , only : nlevgrnd, nlevsno, mxpft
   use clm_varcon            , only : namep 
   use pftconMod             , only : pftcon
@@ -48,6 +48,9 @@ module CanopyFluxesMod
   use EDTypesMod            , only : ed_site_type
   use SoilWaterRetentionCurveMod, only : soil_water_retention_curve_type
   use LunaMod               , only : Update_Photosynthesis_Capacity, Acc24_Climate_LUNA,Acc240_Climate_LUNA,Clear24_Climate_LUNA
+  use FatesInterfaceMod     , only : hlm_day_of_year
+  use PrescribeZ0Mod        , only : readDailyRoughness
+
   !
   ! !PUBLIC TYPES:
   implicit none
@@ -180,6 +183,7 @@ contains
                                     swbgt, hmdex, dis_coi, dis_coiS, THIndex, &
                                     SwampCoolEff, KtoC, VaporPres
     use SoilWaterRetentionCurveMod, only : soil_water_retention_curve_type
+
     !
     ! !ARGUMENTS:
     type(bounds_type)                      , intent(in)            :: bounds 
@@ -375,6 +379,7 @@ contains
     real(r8), parameter :: k_cyl_vol = 1.0         !departure from cylindrical volume
     real(r8), parameter :: k_cyl_area = 1.0        !departure from cylindrical area
     real(r8), parameter :: k_internal = 0.0        !self-absorbtion of leaf/stem longwave
+    integer  :: doy                                ! day of year
 
 
     
@@ -453,7 +458,7 @@ contains
          esai                   => canopystate_inst%esai_patch                  , & ! Input:  [real(r8) (:)   ]  one-sided stem area index with burying by snow
          smi                    => canopystate_inst%smi_patch                   , & ! Output: [real(r8) (:)   ]  Aboveground stem mass  (kg/m**2)
          lmi                    => canopystate_inst%lmi_patch                   , & ! Output: [real(r8) (:)   ]  Aboveground leaf mass  (kg/m**2)
-                        
+         prescribed_z0m         => canopystate_inst%prescribed_z0m_patch        , & ! Input:  [real(r8) (:)   ]  Prescribed momentum surface roughness (m)                   
          laisun                 => canopystate_inst%laisun_patch                , & ! Input:  [real(r8) (:)   ]  sunlit leaf area                                                      
          laisha                 => canopystate_inst%laisha_patch                , & ! Input:  [real(r8) (:)   ]  shaded leaf area                                                      
          displa                 => canopystate_inst%displa_patch                , & ! Input:  [real(r8) (:)   ]  displacement height (m)                                               
@@ -814,9 +819,16 @@ contains
          lt = min(elai(p)+esai(p), tlsai_crit)
          egvf =(1._r8 - alpha_aero * exp(-lt)) / (1._r8 - alpha_aero * exp(-tlsai_crit))
          displa(p) = egvf * displa(p)
-         z0mv(p)   = exp(egvf * log(z0mv(p)) + (1._r8 - egvf) * log(z0mg(c)))
-         z0hv(p)   = z0mv(p)
-         z0qv(p)   = z0mv(p)
+         if(prescribe_z0) then
+             z0mv(p) = prescribed_z0m(p)
+             z0hv(p)   = exp(egvf * log(z0mv(p)) + (1._r8 - egvf) * log(z0mg(c)))
+             z0qv(p)   = exp(egvf * log(z0mv(p)) + (1._r8 - egvf) * log(z0mg(c)))
+         else
+             z0mv(p)   = exp(egvf * log(z0mv(p)) + (1._r8 - egvf) * log(z0mg(c)))
+             z0hv(p)   = z0mv(p)
+             z0qv(p)   = z0mv(p)
+         end if
+
       end do
 
       found = .false.
@@ -1572,6 +1584,18 @@ contains
             endif
             
          endif
+      end if
+
+      ! Update prescribed momentum surface roughness if end of day is reached
+      if(is_end_day) then 
+          doy=hlm_day_of_year
+          if(doy .eq. 365) then
+             doy = 1
+          else
+             doy = doy + 1
+          end if
+ 
+          call readDailyRoughness(bounds, fsurdat, doy, canopystate_inst)
       end if
 
       ! Filter out patches which have small energy balance errors; report others

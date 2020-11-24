@@ -86,6 +86,7 @@ module clm_varctl
 
   character(len=fname_len), public :: finidat    = ' '        ! initial conditions file name
   character(len=fname_len), public :: fsurdat    = ' '        ! surface data file name
+  character(len=fname_len), public :: f_prescribe_z0    = ' '  ! file to prescribe surface roughness
   character(len=fname_len), public :: fatmgrid   = ' '        ! atm grid file name
   character(len=fname_len), public :: fatmlndfrc = ' '        ! lnd frac file on atm grid
   character(len=fname_len), public :: paramfile  = ' '        ! ASCII data file with PFT physiological constants
@@ -236,6 +237,12 @@ module clm_varctl
   !----------------------------------------------------------
 
   logical, public :: use_lai_streams = .false. ! true => use lai streams in SatellitePhenologyMod.F90
+
+  !----------------------------------------------------------
+  ! switch to prescribe surface roughness
+  !----------------------------------------------------------
+
+  logical, public :: prescribe_z0 = .false. ! true => use lai streams in SatellitePhenologyMod.F90
 
   !----------------------------------------------------------
   ! biomass heat storage switch

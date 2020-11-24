@@ -31,6 +31,7 @@ module CanopyStateType
      real(r8) , pointer :: esai_patch               (:)   ! patch canopy one-sided stem area index with burying by snow
      real(r8) , pointer :: smi_patch                (:)   ! Aboveground stemm biomass (kg/m**2)
      real(r8) , pointer :: lmi_patch                (:)   ! Aboveground leaf biomass  (kg/m**2)
+     real(r8) , pointer :: prescribed_z0m_patch     (:)   ! Prescribed surface roughness length for momentum (only used if prescribe_z0 = true) 
      real(r8) , pointer :: elai240_patch            (:)   ! patch canopy one-sided leaf area index with burying by snow average over 10days 
      real(r8) , pointer :: laisun_patch             (:)   ! patch patch sunlit projected leaf area index  
      real(r8) , pointer :: laisha_patch             (:)   ! patch patch shaded projected leaf area index  
@@ -123,6 +124,7 @@ contains
     allocate(this%elai_patch               (begp:endp))           ; this%elai_patch               (:)   = nan
     allocate(this%smi_patch                (begp:endp))           ; this%smi_patch                (:)   = nan
     allocate(this%lmi_patch                (begp:endp))           ; this%lmi_patch                (:)   = nan
+    allocate(this%prescribed_z0m_patch     (begp:endp))           ; this%prescribed_z0m_patch     (:)   = nan
     allocate(this%elai240_patch            (begp:endp))           ; this%elai240_patch            (:)   = nan
     allocate(this%esai_patch               (begp:endp))           ; this%esai_patch               (:)   = nan
     allocate(this%laisun_patch             (begp:endp))           ; this%laisun_patch             (:)   = nan
@@ -531,6 +533,7 @@ contains
        this%esai_patch(p)       = 0._r8
        this%smi_patch(p)        = 0._r8
        this%lmi_patch(p)        = 0._r8
+       this%prescribed_z0m_patch(p) = 0._r8
        this%htop_patch(p)       = 0._r8
        this%hbot_patch(p)       = 0._r8
        this%dewmx_patch(p)      = 0.1_r8
@@ -611,6 +614,9 @@ contains
          dim1name='pft', long_name='leaf mass index', units='kg/m^2', &
          interpinic_flag='interp', readvar=readvar, data=this%lmi_patch)
 
+    call restartvar(ncid=ncid, flag=flag, varname='prescribed_z0m', xtype=ncd_double,  &
+         dim1name='pft', long_name='prescribed surface roughness for momentum', units='m', &
+         interpinic_flag='interp', readvar=readvar, data=this%prescribed_z0m_patch)
 
     
     call restartvar(ncid=ncid, flag=flag, varname='htop', xtype=ncd_double,  &

@@ -681,6 +681,11 @@ Full pathname datafile with fates parameters
 Full pathname of surface data file.
 </entry>
 
+<entry id="f_prescribe_z0" type="char*256"     category="datasets"
+       input_pathname="abs" group="clm_inparm" valid_values="" >
+Full pathname of input file to prescribe surface roughness.
+</entry>
+
 <entry id="fsnowoptics" type="char*256" category="datasets" 
        input_pathname="abs" group="clm_inparm" valid_values="" >
 SNICAR (SNow, ICe, and Aerosol Radiative model) optical data file name
@@ -1541,6 +1546,11 @@ to hydrologic variables (either TWS or ZWT)
         group="clm_inparm" valid_values="" value=".false.">
 Toggle to turn on use of LAI streams in place of the LAI on the surface dataset when using Satellite Phenology mode.
 (EXPERIMENTAL and NOT tested)
+</entry>
+
+<entry id="prescribe_z0" type="logical" category="physics"
+        group="clm_inparm" valid_values="" value=".false.">
+Toggle to prescribe surface roughness length (for momentum).
 </entry>
 
 <entry id="stream_year_first_lai" type="integer" category="datasets"
