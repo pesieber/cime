@@ -2243,12 +2243,12 @@ contains
     ! !LOCAL VARIABLES:
     integer :: k,m,n,cnt                     ! indices
     integer :: basetype                      ! pio basetype
-    integer :: gsmap_lsize                   ! local size of gsmap
-    integer :: gsmap_gsize                   ! global size of gsmap
-    integer :: fullsize                      ! size of entire array on cdf
-    integer :: gsize                         ! global size of clmlevel
-    integer :: vsize                         ! other dimensions
-    integer :: vsize1, vsize2                ! other dimensions
+    integer(8) :: gsmap_lsize                   ! local size of gsmap
+    integer(8) :: gsmap_gsize                   ! global size of gsmap
+    integer(8) :: fullsize                      ! size of entire array on cdf
+    integer(8) :: gsize                         ! global size of clmlevel
+    integer(8) :: vsize                         ! other dimensions
+    integer(8) :: vsize1, vsize2                ! other dimensions
     integer :: status                        ! error status
     logical :: found                         ! true => found created iodescriptor
     integer :: ndims_file                    ! temporary

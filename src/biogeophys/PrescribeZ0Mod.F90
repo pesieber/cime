@@ -67,7 +67,7 @@ contains
     ! !ARGUMENTS:
     type(bounds_type) , intent(in) :: bounds  
     character(len=*)  , intent(in) :: fveg      ! file with monthly vegetation data
-    integer           , intent(in) :: doy       ! day of year
+    integer           , intent(inout) :: doy       ! day of year
     type(canopystate_type), intent(inout) :: canopystate_inst
     !
     ! !LOCAL VARIABLES:
@@ -107,8 +107,6 @@ contains
        call shr_scam_getCloseLatLon (ncid, scmlat, scmlon, closelat, closelon,&
             closelatidx, closelonidx)
     endif
-
-
        call ncd_io(ncid=ncid, varname='Z0MV_pft', flag='read', data=z0m, dim1name=grlnd, &
             nt=doy, readvar=readvar)
        if (.not. readvar) call endrun(msg=' ERROR: ZOMV_pft NOT on fveg file'//errMsg(sourcefile, __LINE__))

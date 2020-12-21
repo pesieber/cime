@@ -14,7 +14,8 @@ module CanopyFluxesMod
   use shr_log_mod           , only : errMsg => shr_log_errMsg
   use abortutils            , only : endrun
   use clm_varctl            , only : iulog, use_cn, use_lch4, use_c13, use_c14, use_cndv, use_fates, &
-                                     use_luna, use_hydrstress, use_biomass_heat_storage, fsurdat, prescribe_z0
+                                     use_luna, use_hydrstress, use_biomass_heat_storage, fsurdat, prescribe_z0, &
+                                     f_prescribe_z0
   use clm_varpar            , only : nlevgrnd, nlevsno, mxpft
   use clm_varcon            , only : namep 
   use pftconMod             , only : pftcon
@@ -48,7 +49,6 @@ module CanopyFluxesMod
   use EDTypesMod            , only : ed_site_type
   use SoilWaterRetentionCurveMod, only : soil_water_retention_curve_type
   use LunaMod               , only : Update_Photosynthesis_Capacity, Acc24_Climate_LUNA,Acc240_Climate_LUNA,Clear24_Climate_LUNA
-  use FatesInterfaceMod     , only : hlm_day_of_year
   use PrescribeZ0Mod        , only : readDailyRoughness
 
   !
@@ -171,7 +171,7 @@ contains
     !
     ! !USES:
     use shr_const_mod      , only : SHR_CONST_RGAS, shr_const_pi
-    use clm_time_manager   , only : get_step_size, get_prev_date,is_end_curr_day
+    use clm_time_manager   , only : get_step_size, get_prev_date,is_end_curr_day, get_curr_date
     use clm_varcon         , only : sb, cpair, hvap, vkc, grav, denice
     use clm_varcon         , only : denh2o, tfrz, csoilc, tlsai_crit, alpha_aero
     use clm_varcon         , only : c14ratio
@@ -380,8 +380,13 @@ contains
     real(r8), parameter :: k_cyl_area = 1.0        !departure from cylindrical area
     real(r8), parameter :: k_internal = 0.0        !self-absorbtion of leaf/stem longwave
     integer  :: doy                                ! day of year
-
-
+    integer  :: year                               ! year (0, ...) for nstep
+    integer  :: month                              ! month (1, ..., 12) for nstep
+    integer  :: day                                ! day of month (1, ..., 31) for nstep
+    integer  :: secs                               ! seconds into current date for nstep
+    integer, dimension(12) :: cdaypm = &
+          (/0,  31,  59,  90, 120, 151, 181, 212, 243, 273, 304, 334/) ! cumulative
+          ! number of days per month
     
     integer :: dummy_to_make_pgi_happy
     !------------------------------------------------------------------------------
@@ -590,6 +595,15 @@ contains
       fn = num_exposedvegp
       filterp(1:fn) = filter_exposedvegp(1:fn)
 
+      ! Update prescribed momentum surface roughness new day is started
+      if(prescribe_z0) then
+         call get_curr_date(year, month, day, secs)
+         if(secs <= dtime) then 
+              doy=cdaypm(month)+day
+              call readDailyRoughness(bounds, f_prescribe_z0, doy, canopystate_inst)
+         end if
+      end if
+
       ! -----------------------------------------------------------------
       ! Time step initialization of photosynthesis variables
       ! -----------------------------------------------------------------
@@ -704,7 +718,7 @@ contains
 ! cdry_biomass = 1400 J/kg/K, cwater = 4188 J/kg/K
 ! boreal needleleaf lma*c2b ~ 0.25 kg dry mass/m2(leaf)
          ! Calculate aboveground leaf biomass if CN-module not active 
-         if(.not. use_cn) lmi(p) = 0.25_r8 * max(0.01_r8, sa_leaf(p)) / (1._r8 - 0.7_r8)
+         if(.not. use_cn) lmi(p) = 0.25_r8 * max(0.01_r8, sa_leaf(p))
                  
 ! Assume fraction of leaves that is water is 0.7
          cp_veg(p)  = lmi(p) * (1400._r8 * (1._r8 - 0.7_r8) + 0.7_r8 * 4188._r8)
@@ -819,10 +833,13 @@ contains
          lt = min(elai(p)+esai(p), tlsai_crit)
          egvf =(1._r8 - alpha_aero * exp(-lt)) / (1._r8 - alpha_aero * exp(-tlsai_crit))
          displa(p) = egvf * displa(p)
+
          if(prescribe_z0) then
+             !z0hv(p)   = exp(egvf * log(z0hv(p)) + (1._r8 - egvf) * log(z0mg(c)))
+             !z0qv(p)   = z0hv(p)
              z0mv(p) = prescribed_z0m(p)
-             z0hv(p)   = exp(egvf * log(z0mv(p)) + (1._r8 - egvf) * log(z0mg(c)))
-             z0qv(p)   = exp(egvf * log(z0mv(p)) + (1._r8 - egvf) * log(z0mg(c)))
+             z0hv(p)   = z0mv(p)
+             z0qv(p)   = z0mv(p)
          else
              z0mv(p)   = exp(egvf * log(z0mv(p)) + (1._r8 - egvf) * log(z0mg(c)))
              z0hv(p)   = z0mv(p)
@@ -1586,17 +1603,7 @@ contains
          endif
       end if
 
-      ! Update prescribed momentum surface roughness if end of day is reached
-      if(is_end_day) then 
-          doy=hlm_day_of_year
-          if(doy .eq. 365) then
-             doy = 1
-          else
-             doy = doy + 1
-          end if
- 
-          call readDailyRoughness(bounds, fsurdat, doy, canopystate_inst)
-      end if
+
 
       ! Filter out patches which have small energy balance errors; report others
 
