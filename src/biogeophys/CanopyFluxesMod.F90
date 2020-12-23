@@ -718,7 +718,7 @@ contains
 ! cdry_biomass = 1400 J/kg/K, cwater = 4188 J/kg/K
 ! boreal needleleaf lma*c2b ~ 0.25 kg dry mass/m2(leaf)
          ! Calculate aboveground leaf biomass if CN-module not active 
-         if(.not. use_cn) lmi(p) = 0.25_r8 * max(0.01_r8, sa_leaf(p))
+         if(.not. use_cn) lmi(p) = 0.25_r8 * max(0.01_r8, sa_leaf(p)) / 2._r8
                  
 ! Assume fraction of leaves that is water is 0.7
          cp_veg(p)  = lmi(p) * (1400._r8 * (1._r8 - 0.7_r8) + 0.7_r8 * 4188._r8)
