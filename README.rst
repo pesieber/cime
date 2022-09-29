@@ -1,4 +1,29 @@
 ====
+Features (based on Ronny Meier's cesm_bmst_bgc)
+====
+
+CTSM checkout of branch release-clm5.0
+
+Additional features:
+- Separate soil columns for natural vegetation PFTs (SeSC)
+Namelist switch: use_individual_pft_soil_column = .true.
+
+- Biomass heat storage (bhs / bmhs / bmst), tested together with friction velocity
+Namelist switch bhs: use_biomass_heat_storage = .true.
+Namelist switch friction velocity: zetamaxstable = 100.0d00
+
+- Prescription of surface roughness (z0_presc)
+Added src/biogeophys/PrescribeZ0Mod.F90
+
+Not included in this code:
+- Modified parameterisation of surface roughness (z0_presc)
+Source code changes
+Namelist switch planned: z0param_method = 'Meier2022'
+paramfile = '/project/s824/ronmeier/cesm_inputdata/lnd/clm2/paramdata/ctsm51_params_newz0.c210208.nc'
+paramfile = '/project/sm61/ronmeier/cesm_inputdata/lnd/clm2/paramdata/ctsm51_params_newz0.c211112.nc'
+paramfile ='/glade/p/cesm/lmwg_dev/oleson/Z0_RonnieMeier/ctsm51_params_newz0.c211112.nc'
+
+====
 CTSM
 ====
 

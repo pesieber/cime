@@ -14,7 +14,7 @@ manage_externals.log
 *.nc
 
 # editor files
-*.swp
+*.sw*
 *~
 
 # mac files
@@ -95,3 +95,6 @@ core.*
 *.log !run.log
 *.pyc
 Depends
+
+# jupyter
+.ipynb_checkpoints
