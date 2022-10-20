@@ -23,7 +23,7 @@ COMPILER=gnu # setting to gnu-oasis will: (1) use different compiler config, (2)
 DRIVER=mct # using nuopc requires ESMF installation
 EXP=cclm2_test_${date} # case name
 CASENAME=$CODE.$COMPILER.$COMPSET.$RES.$DOMAIN.$EXP
-MACH=daint
+MACH=pizdaint
 QUEUE=normal # USER_REQUESTED_QUEUE, overrides default JOB_QUEUE
 WALLTIME="1:30:00" # USER_REQUESTED_WALLTIME, overrides default JOB_WALLCLOCK_TIME
 PROJECT=sm61
@@ -284,15 +284,11 @@ print_log "*** Preview the run ***"
 ./preview_run | tee -a $logfile
 
 print_log "*** Submitting job ***"
-
-if [ $CODE == clm5.0_features ]; then
-    ./case.submit -a "-C gpu" --skip-provenance-check | tee -a $logfile # needed with Ronny's old code base
-else
-    ./case.submit -a "-C gpu" | tee -a $logfile
-fi
+./case.submit -a "-C gpu" | tee -a $logfile
 
 # fails for clm5.0_features because tasks-per-node evaluates to float (12.0) with python 3. Cannot find where the calculation is made. Can also not override it like this:
-#./case.submit -a "-C gpu -p normal --ntasks-per-node 12" # should be set in env_batch.xml
+# ./case.submit -a "-C gpu -p normal --ntasks-per-node 12" 
+# or by setting in config_batch.xml
 
 squeue --user=psieber | tee -a $logfile
 #less CaseStatus
