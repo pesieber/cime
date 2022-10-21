@@ -301,6 +301,7 @@ print_log "Duration: $(($duration / 60)) min $(($duration % 60)) sec"
 
 
 #==========================================
+# Copy final CaseStatus to logs
 # Copy logfiles to some permanent directory together with output
 #==========================================
 
