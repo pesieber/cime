@@ -1,10 +1,11 @@
 #! /bin/bash
 
 # Script to compile CLM with case-specific settings
-# For standalone CLM or coupling with COSMO
-# Domain can be EURO-CORDEX or global
+# For standalone CLM or coupling with COSMO (for coupling set COMPILER=MY_COMPILER-oasis)
+# Domain can be global or EURO-CORDEX (set DOMAIN=eur, requires domain and mapping files) 
 
 set -e # failing commands will cause the shell script to exit
+
 
 #==========================================
 # Case settings
@@ -14,19 +15,19 @@ echo "*** Setting up case ***"
 
 date=`date +'%Y%m%d-%H%M'` # get current date and time
 startdate=`date +'%Y-%m-%d %H:%M:%S'`
+COMPSET=I2000Clm50SpGs # for CCLM2 (use stub glacier component for regional domain!)
+RES=hcru_hcru # hcru_hcru for CCLM2-0.44, f09_g17 to test glob (inputdata downloaded)
+DOMAIN=eur # eur for CCLM2 (EURO-CORDEX), sa for South-America, glob otherwise 
 
-COMPSET=I2000Clm50Sp # for CCLM2
-RES=hcru_hcru # for CCLM2
-DOMAIN=eur # EURO-CORDEX for CCLM2, glob otherwise
-CODE=clm5.0_features # clm5.0_features for Ronny's version, CTSMdev for latest 
-COMPILER=gnu # setting to gnu-oasis will: (1) use different compiler config, (2) copy oasis source code to CASEDIR
-DRIVER=mct # using nuopc requires ESMF installation
-EXP=cclm2_test_${date} # case name
+CODE=clm5.0 # clm5.0 for official release, clm5.0_features for Ronny's version, CTSMdev for latest 
+COMPILER=nvhpc # gnu for gcc, or nvhpc; setting to gnu-oasis or nvhpc-oasis will: (1) use different compiler config, (2) copy oasis source code to CASEDIR
+DRIVER=mct # default is mct, using nuopc requires ESMF installation
+EXP=cclm2_${date} # custom case name
 CASENAME=$CODE.$COMPILER.$COMPSET.$RES.$DOMAIN.$EXP
 MACH=pizdaint
 QUEUE=normal # USER_REQUESTED_QUEUE, overrides default JOB_QUEUE
-WALLTIME="1:30:00" # USER_REQUESTED_WALLTIME, overrides default JOB_WALLCLOCK_TIME
-PROJECT=sm61
+WALLTIME="01:00:00" # USER_REQUESTED_WALLTIME, overrides default JOB_WALLCLOCK_TIME
+PROJ=$(basename "$(dirname "${PROJECT}")") # extract project name (sm61/sm62)
 NTASKS=24
 NSUBMIT=0 # partition into smaller chunks, excludes the first submission
 let "NCORES = $NTASKS * 12"
@@ -35,9 +36,10 @@ NYEARS=1
 
 # Set directories
 export CLMROOT=$PWD # CLM code base directory on $PROJECT where this script is located
-export CCLM2ROOT=$CLMROOT/.. # CCLM2 code base directory on $PROJECT where CLM and OASIS are located
+export CCLM2ROOT=$CLMROOT/.. # CCLM2 code base directory on $PROJECT where CLM, OASIS and COSMO are located
 export CASEDIR=$SCRATCH/CCLM2_cases/$CASENAME # case directory on scratch
-export CESMDATAROOT=/project/sm61/shared # downloaded inputdata to reuse, includes preprocessed EURO-CORDEX files
+export CESMDATAROOT=$SCRATCH/CCLM2_inputdata # inputdata directory on scratch (to reuse, includes downloads and preprocessed EURO-CORDEX files)
+export CESMOUTPUTROOT=$SCRATCH/CCLM2_output/$CASENAME # output directory on scratch
 
 # Log output (use "tee" to send output to both screen and $outfile)
 logfile=$SCRATCH/CCLM2_logs/${CASENAME}_mylogfile.log
@@ -52,38 +54,36 @@ print_log "*** Case at: ${CASEDIR} ***"
 print_log "*** Case settings: compset ${COMPSET}, resolution ${RES}, domain ${DOMAIN}, compiler ${COMPILER} ***"
 print_log "*** Logfile at: ${logfile} ***"
 
+# Sync inputdata on scratch because scratch will be cleaned every month (change inputfiles on $PROJECT!)
+print_log "*** Syncing inputdata on scratch  ***"
+
+#rsync -rv --ignore-existing /project/$PROJ/shared/CCLM2_inputdata/ $CESMDATAROOT/ | tee -a $logfile
+sbatch --account=$PROJ --export=ALL,PROJ=$PROJ transfer_clm_inputdata.sh # xfer job to prevent overflowing the loginnode
+
 
 #==========================================
-# Load modules
+# Load modules and find spack_oasis
 #==========================================
-# can also be done through $USER/.cime/config_machines.xml
 
-print_log "*** Loading modules ***"
+# Load modules: now done through $USER/.cime/config_machines.xml
+# print_log "*** Loading modules ***"
+# daint-gpu (although CLM will run on cpus)
+# PrgEnv-xxx (also switch compiler version if needed)
+# cray-mpich
+# cray-netcdf-hdf5parallel
+# cray-hdf5-parallel
+# cray-parallel-netcdf
 
-module load daint-gpu # use gpu although CLM will run on cpus
+#module list | tee -a $logfile
 
-if [ $COMPILER = nvhpc ] ; then
-    module switch PrgEnv-cray PrgEnv-nvidia
-    module load cray-netcdf-hdf5parallel
-    module load cray-hdf5-parallel
-    module load cray-parallel-netcdf
-    spack load netlib-lapack%nvhpc # provides lapack and blas, load if config_compilers has -llapack -lblas
-    #module load cray-libsci # provides lapack and blas, load if config_compilers has -llibsci_gnu (does not work with nvhpc)
+# Find spack_oasis installation (used in .cime/config_compilers.xml)
+if [[ $COMPILER =~ "oasis" ]]; then
+    print_log "*** Finding spack_oasis ***"
+    export OASIS_PATH=$(spack location -i oasis%gcc) # e.g. /project/sm61/psieber/spack-install/oasis/master/gcc/24obfvejulxnpfxiwatzmtcddx62pikc
+    print_log "*** OASIS at: ${OASIS_PATH} ***"
 fi
 
-if [ $COMPILER = gnu ] ; then
-    module switch PrgEnv-cray PrgEnv-gnu
-    module switch gcc gcc/9.3.0 # the default version gives an error when building gptl
-    module load cray-netcdf-hdf5parallel
-    module load cray-hdf5-parallel
-    module load cray-parallel-netcdf
-    spack load oasis%gcc
-fi
-
-#alias python=python2.7 # currently in .bashrc, but does not work for cray PATH
-
-module list | tee -a $logfile
-print_log $LD_LIBRARY_PATH
+print_log "*** LD_LIBRARY_PATH: ${LD_LIBRARY_PATH} ***"
 
 
 #==========================================
@@ -93,7 +93,7 @@ print_log $LD_LIBRARY_PATH
 print_log "*** Creating CASE: ${CASENAME} ***"
 
 cd $CLMROOT/cime/scripts
-./create_newcase --case $CASEDIR --compset $COMPSET --res $RES --mach $MACH --compiler $COMPILER --driver $DRIVER --project $PROJECT --run-unsupported | tee -a $logfile
+./create_newcase --case $CASEDIR --compset $COMPSET --res $RES --mach $MACH --compiler $COMPILER --driver $DRIVER --project $PROJ --run-unsupported | tee -a $logfile
 
 
 #==========================================
@@ -135,8 +135,8 @@ fi
 ./xmlchange NTASKS_ROF=-$NTASKS
 ./xmlchange NTASKS_LND=-$NTASKS 
 
-# If parallel netcdf is used
-./xmlchange PIO_VERSION="2" # 1 is default in clm5.0, 2 is default in CTSMdev
+# If parallel netcdf is used, PIO_VERSION="2" (have not gotten this to work!)
+#./xmlchange PIO_VERSION="1" # 1 is default in clm5.0, 2 is default in CTSMdev
 
 # Activate debug mode (env_build.xml)
 #./xmlchange DEBUG=TRUE
@@ -149,17 +149,39 @@ fi
 
 #./xmlchange CLM_NAMELIST_OPTS="use_init_interp=.false. # Ronny sets interp to false, not sure about this
 
-# Domain and mapping files for limited spatial extent (copy from $CESMDATAROOT to scratch for access at runtime?)
+# Domain and mapping files for limited spatial extent
 if [ $DOMAIN == eur ]; then
     ./xmlchange LND_DOMAIN_PATH="$CESMDATAROOT/CCLM2_EUR_inputdata/domain"
-    ./xmlchange LND_DOMAIN_FILE="domain.lnd.360x720_cruncep.100429.nc"
+    ./xmlchange LND_DOMAIN_FILE="domain_EU-CORDEX_0.5_correctedlons.nc"
     ./xmlchange LND2ROF_FMAPNAME="$CESMDATAROOT/CCLM2_EUR_inputdata/mapping/map_360x720_nomask_to_0.5x0.5_nomask_aave_da_c130103.nc"
     ./xmlchange ROF2LND_FMAPNAME="$CESMDATAROOT/CCLM2_EUR_inputdata/mapping/map_0.5x0.5_nomask_to_360x720_nomask_aave_da_c120830.nc"
     ./xmlchange LND2GLC_FMAPNAME="$CESMDATAROOT/CCLM2_EUR_inputdata/mapping/map_360x720_TO_gland4km_aave.170429.nc"
     ./xmlchange LND2GLC_SMAPNAME="$CESMDATAROOT/CCLM2_EUR_inputdata/mapping/map_360x720_TO_gland4km_aave.170429.nc"
     ./xmlchange GLC2LND_FMAPNAME="$CESMDATAROOT/CCLM2_EUR_inputdata/mapping/map_gland4km_TO_360x720_aave.170429.nc"
     ./xmlchange GLC2LND_SMAPNAME="$CESMDATAROOT/CCLM2_EUR_inputdata/mapping/map_gland4km_TO_360x720_aave.170429.nc"
+    ./xmlchange MOSART_MODE=NULL # turn off MOSART for the moment because it runs globally
 fi
+if [ $DOMAIN == sa ]; then
+    ./xmlchange LND_DOMAIN_PATH="$CESMDATAROOT/CCLM2_SA_inputdata/domain"
+    ./xmlchange LND_DOMAIN_FILE="domain.lnd.360x720_SA-CORDEX_cruncep.100429.nc"
+    ./xmlchange LND2ROF_FMAPNAME="$CESMDATAROOT/CCLM2_EUR_inputdata/mapping/map_360x720_nomask_to_0.5x0.5_nomask_aave_da_c130103.nc"
+    ./xmlchange ROF2LND_FMAPNAME="$CESMDATAROOT/CCLM2_EUR_inputdata/mapping/map_0.5x0.5_nomask_to_360x720_nomask_aave_da_c120830.nc"
+    ./xmlchange LND2GLC_FMAPNAME="$CESMDATAROOT/CCLM2_EUR_inputdata/mapping/map_360x720_TO_gland4km_aave.170429.nc"
+    ./xmlchange LND2GLC_SMAPNAME="$CESMDATAROOT/CCLM2_EUR_inputdata/mapping/map_360x720_TO_gland4km_aave.170429.nc"
+    ./xmlchange GLC2LND_FMAPNAME="$CESMDATAROOT/CCLM2_EUR_inputdata/mapping/map_gland4km_TO_360x720_aave.170429.nc"
+    ./xmlchange GLC2LND_SMAPNAME="$CESMDATAROOT/CCLM2_EUR_inputdata/mapping/map_gland4km_TO_360x720_aave.170429.nc"
+    ./xmlchange MOSART_MODE=NULL # turn off MOSART for the moment because it runs globally
+fi
+
+# Still global
+./xmlchange LND2ROF_FMAPNAME="$CESMDATAROOT/CCLM2_EUR_inputdata/mapping/map_360x720_nomask_to_0.5x0.5_nomask_aave_da_c130103.nc"
+./xmlchange ROF2LND_FMAPNAME="$CESMDATAROOT/CCLM2_EUR_inputdata/mapping/map_0.5x0.5_nomask_to_360x720_nomask_aave_da_c120830.nc"
+
+# Not needed for stub components (?)
+#./xmlchange LND2GLC_FMAPNAME="$CESMDATAROOT/CCLM2_EUR_inputdata/mapping/map_360x720_TO_gland4km_aave.170429.nc"
+#./xmlchange LND2GLC_SMAPNAME="$CESMDATAROOT/CCLM2_EUR_inputdata/mapping/map_360x720_TO_gland4km_aave.170429.nc"
+#./xmlchange GLC2LND_FMAPNAME="$CESMDATAROOT/CCLM2_EUR_inputdata/mapping/map_gland4km_TO_360x720_aave.170429.nc"
+#./xmlchange GLC2LND_SMAPNAME="$CESMDATAROOT/CCLM2_EUR_inputdata/mapping/map_gland4km_TO_360x720_aave.170429.nc"
 
 # ESMF interface and time manager (env_build.xml)
 #./xmlchange -file env_build.xml -id COMP_INTERFACE -val "mct" # mct is default in clm5.0, nuopc is default in CTSMdev (requires ESMF installation); adding --driver mct to create_newcase creates the case with everything needed
@@ -203,21 +225,37 @@ print_log "h2: selected variables, daily values (-24), yearly file (365 vals per
 print_log "h3: selected variables, 6-hourly values (-6), daily file (4 vals per file), instantaneous at the output interval (I) by PFT"
 '
 
-# EUR surfdata and params: can be exchanged for newer versions
-if [ $DOMAIN == eur ]; then
+# Params file: can be exchanged for newer versions
 cat > user_nl_clm << EOF
-fsurdat = "$CESMDATAROOT/CCLM2_EUR_inputdata/surfdata/surfdata_360x720cru_16pfts_simyr2000_c170428.nc"
 paramfile = "$CESMDATAROOT/CCLM2_EUR_inputdata/CLM5params/clm5_params.cpbiomass.c190103.nc"
 EOF
 
+# Surface data (domain-specific), specify to re-use downloaded files
+if [ $DOMAIN == eur ]; then
+cat > user_nl_clm << EOF
+fsurdat = "$CESMDATAROOT/CCLM2_EUR_inputdata/surfdata/surfdata_0.5x0.5_hist_16pfts_Irrig_CMIP6_simyr2000_c190418.nc"
+EOF
 cat > user_nl_datm << EOF
-domainfile = "$CESMDATAROOT/CCLM2_EUR_inputdata/domain/domain.lnd.360x720_cruncep.100429.nc"
+domainfile = "$CESMDATAROOT/CCLM2_EUR_inputdata/domain/domain_EU-CORDEX_0.5_correctedlons.nc"
 EOF
 fi
 
-# GLOB surfdata and params: default
+if [ $DOMAIN == sa ]; then
+cat > user_nl_clm << EOF
+fsurdat = "$CESMDATAROOT/CCLM2_SA_inputdata/surfdata/surfdata_360x720cru_SA-CORDEX_16pfts_Irrig_CMIP6_simyr2000_c170824.nc"
+EOF
+cat > user_nl_datm << EOF
+domainfile = "$CESMDATAROOT/CCLM2_SA_inputdata/domain/domain.lnd.360x720_SA-CORDEX_cruncep.100429.nc"
+EOF
+fi
 
-# These namelist options are available in Ronny's code
+if [ $DOMAIN == glob ]; then
+cat > user_nl_clm << EOF
+fsurdat = "$CESMDATAROOT/CCLM2_EUR_inputdata/surfdata/surfdata_360x720cru_16pfts_simyr2000_c170428.nc"
+EOF
+fi
+
+# Namelist options available in Ronny's code
 if [ $CODE == clm5.0_features ]; then
 cat > user_nl_clm << EOF
 use_biomass_heat_storage = .true.
@@ -226,7 +264,7 @@ zetamaxstable = 100.0d00
 EOF
 fi
 
-# These namelist options are available in CTSMdev (?)
+# Namelist options available in CTSMdev (?)
 if [ $CODE == CTSMdev ]; then
 cat > user_nl_clm << EOF
 use_biomass_heat_storage = .true.
@@ -246,6 +284,9 @@ fi
 print_log "*** Running case.setup ***"
 ./case.setup -r | tee -a $logfile
 
+#print_log "*** Downloading missing inputdata (if needed) ***"
+#print_log "*** Consider transferring new data to PROJECT, e.g. rsync -av ${SCRATCH}/CCLM2_inputdata /project/${PROJ}/shared/CCLM2_inputdata ***"
+#./check_input_data --download
 
 #==========================================
 # For OASIS coupling: before building, add the additional routines for OASIS interface in your CASEDIR on scratch
@@ -254,7 +295,7 @@ print_log "*** Running case.setup ***"
 if [[ $COMPILER =~ "oasis" ]]; then
     print_log "*** Adding OASIS routines ***"
     ln -sf $CCLM2ROOT/cesm2_oas/src/oas/* SourceMods/src.drv/
-    rm  SourceMods/src.drv/oas_clm_vardef.F90
+    rm SourceMods/src.drv/oas_clm_vardef.F90
     ln -sf $CCLM2ROOT/cesm2_oas/src/drv/* SourceMods/src.drv/
     ln -sf $CCLM2ROOT/cesm2_oas/src/oas/oas_clm_vardef.F90 SourceMods/src.share/
     ln -sf $CCLM2ROOT/cesm2_oas/src/datm/* SourceMods/src.datm/
@@ -291,19 +332,22 @@ print_log "*** Submitting job ***"
 # ./case.submit -a "-C gpu -p normal --ntasks-per-node 12" 
 # or by setting in config_batch.xml
 
-squeue --user=psieber | tee -a $logfile
+squeue --user=$USER | tee -a $logfile
 #less CaseStatus
 
 enddate=`date +'%Y-%m-%d %H:%M:%S'`
 duration=$SECONDS
 print_log "Started at: $startdate"
 print_log "Finished at: $enddate"
-print_log "Duration: $(($duration / 60)) min $(($duration % 60)) sec"
+print_log "Duration to create, setup, build, submit: $(($duration / 60)) min $(($duration % 60)) sec"
+
+print_log "*** Check the job: squeue --user=${USER} ***"
+print_log "*** Check the case: in ${CASEDIR}, run less CaseStatus ***"
+print_log "*** Output at: ${CESMOUTPUTROOT}, run less CaseStatus ***"
 
 
 #==========================================
 # Copy final CaseStatus to logs
-# Copy logfiles to some permanent directory together with output
 #==========================================
 
 # Notes:

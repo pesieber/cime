@@ -5,6 +5,10 @@ manage_externals.log
 /tools/PTCLM/
 /cime/
 /components/
+version_info.txt
+
+*.err
+*.out
 
 # ignore svn directories
 **/.svn/**
